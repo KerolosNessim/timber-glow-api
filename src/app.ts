@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser'
 import { env } from './config'
 import { connectDB } from './db'
 import { errorHandler } from './middleware/errorHandler'
+import { Product } from './models/Product'
 import { adminRouter } from './routes/admin'
 import { LOCAL_UPLOAD_DIR } from './routes/admin/uploads'
 import { publicRouter } from './routes/public'
@@ -37,6 +38,21 @@ app.use(
   },
   adminRouter,
 )
+/**
+ * Daily Vercel Cron (see vercel.json). A real query keeps the free MongoDB Atlas
+ * cluster from being paused for inactivity when the store has no visitors.
+ * If CRON_SECRET is set in Vercel, only Vercel's cron (which sends it) may call this.
+ */
+app.get('/cron/keepalive', async (req, res) => {
+  const secret = process.env.CRON_SECRET
+  if (secret && req.get('authorization') !== `Bearer ${secret}`) {
+    res.status(401).json({ error: 'Unauthorized' })
+    return
+  }
+  const products = await Product.estimatedDocumentCount()
+  res.json({ ok: true, products, at: new Date().toISOString() })
+})
+
 app.use(publicRouter)
 app.use(ordersRouter)
 
