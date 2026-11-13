@@ -1,6 +1,9 @@
+import { HttpError } from './lib/http'
+
+/** Missing variables surface as a clear 500 naming the variable (set it in Vercel → Environment Variables). */
 function required(name: string): string {
   const value = process.env[name]
-  if (!value) throw new Error(`Missing environment variable ${name}`)
+  if (!value) throw new HttpError(500, `Server misconfigured: missing environment variable ${name}`)
   return value
 }
 
